@@ -29,7 +29,8 @@
 <%@ page import="com.liferay.commerce.product.content.util.CPContentHelper" %>
 <%@ page import="com.liferay.commerce.product.content.constants.CPContentWebKeys" %>
 
-<%@ page import="com.liferay.portal.kernel.util.StringPool" %>
+<%@ page import="com.liferay.petra.string.StringPool" %>
+
 <%@ page import="com.liferay.portal.kernel.util.HtmlUtil" %>
 <%@ page import="com.liferay.commerce.product.model.CPDefinitionSpecificationOptionValue" %>
 <%@ page import="com.liferay.commerce.product.model.CPOptionCategory" %>
