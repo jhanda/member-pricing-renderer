@@ -17,10 +17,14 @@
 <%@ include file="/init.jsp" %>
 
 <%
+	CommerceContext commerceContext = (CommerceContext)request.getAttribute(CommerceWebKeys.COMMERCE_CONTEXT);
 	CPContentHelper cpContentHelper = (CPContentHelper)request.getAttribute(CPContentWebKeys.CP_CONTENT_HELPER);
 	CPDataSourceResult cpDataSourceResult = (CPDataSourceResult)request.getAttribute(CPWebKeys.CP_DATA_SOURCE_RESULT);
 
+	long commerceAccoountId = commerceContext.getCommerceAccount().getCommerceAccountId();
+
 	List<CPCatalogEntry> cpCatalogEntries = cpDataSourceResult.getCPCatalogEntries();
+
 
 %>
 
@@ -32,11 +36,10 @@
 			for (CPCatalogEntry cpCatalogEntry : cpCatalogEntries) {
 
 				String productFriendlyUrl = cpContentHelper.getFriendlyURL(cpCatalogEntry, themeDisplay);
-				String productDefaultImageUrl = cpCatalogEntry.getDefaultImageFileUrl();
 				CPSku cpSku = cpContentHelper.getDefaultCPSku(cpCatalogEntry);
 				String addToCartId = PortalUtil.generateRandomKey(request, "add-to-cart");
 				long cpDefinitionId = cpCatalogEntry.getCPDefinitionId();
-
+				String productDefaultImageUrl = cpContentHelper.getDefaultImageFileURL(commerceAccoountId, cpDefinitionId);
 				String signInUrl = "/c/portal/login?redirect=" + productFriendlyUrl;
 
 			%>

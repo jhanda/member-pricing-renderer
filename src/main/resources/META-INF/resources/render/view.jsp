@@ -1,4 +1,5 @@
-<%--
+<%@ page import="com.liferay.portal.kernel.util.HashMapBuilder" %>
+<%@ page import="com.liferay.commerce.product.content.util.CPMedia" %><%--
 /**
  * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
  *
@@ -25,43 +26,92 @@
 
 	long cpDefinitionId = cpCatalogEntry.getCPDefinitionId();
 
-	String addToCartId = PortalUtil.generateRandomKey(request, "add-to-cart");
-
-	String currentUrl = PortalUtil.getCurrentURL(request);
-
-	String signInUrl = "/c/portal/login?redirect=" + currentUrl;
+	String productFriendlyUrl = cpContentHelper.getFriendlyURL(cpCatalogEntry, themeDisplay);
+	String signInUrl = "/c/portal/login?redirect=" + productFriendlyUrl;
 
 %>
 
 <div class="mb-5 product-detail" id="<portlet:namespace /><%= cpDefinitionId %>ProductContent">
 	<div class="row">
-		<div class="col-md-6 col-xs-12">
-			<commerce-ui:gallery CPDefinitionId="<%= cpDefinitionId %>" />
+		<div class="col-12 col-md-6">
+			<commerce-ui:gallery
+					CPDefinitionId="<%= cpDefinitionId %>"
+					namespace="<%= liferayPortletResponse.getNamespace() %>"
+			/>
 		</div>
 
-		<div class="col-md-6 col-xs-12">
-			<header class="product-header">
-				<commerce-ui:compare-checkbox
-						componentId="compareCheckbox"
-						CPDefinitionId="<%= cpDefinitionId %>"
-				/>
+		<div class="col-12 col-md-6 d-flex flex-column justify-content-center">
+			<header>
+				<div class="availability d-flex mb-4">
+					<div>
+						<commerce-ui:availability-label
+								CPCatalogEntry="<%= cpCatalogEntry %>"
+								namespace="<%= liferayPortletResponse.getNamespace() %>"
+						/>
+					</div>
 
-				<h3 class="product-header-tagline" data-text-cp-instance-sku>
-					<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getSku()) %>
-				</h3>
+					<div class="col stock-quantity text-truncate-inline">
+						<span class="text-truncate" data-text-cp-instance-stock-quantity>
+							<span class="<%= ((cpSku != null) && cpSku.isDiscontinued()) ? StringPool.BLANK : "hide" %>">
+								<span class="text-danger">
+									<%= LanguageUtil.get(request, "discontinued") %>
+								</span>
+								-
+							</span>
+							<span data-qa-id="in-stock-quantity"><%= LanguageUtil.format(request, "x-in-stock", cpContentHelper.getStockQuantity(request)) %></span>
+						</span>
+					</div>
+				</div>
+
+				<%
+					boolean hasReplacement = cpContentHelper.hasReplacement(cpSku, request);
+				%>
+
+				<c:if test="<%= hasReplacement %>">
+					<p class="product-description"><%= LanguageUtil.get(request, "this-product-is-discontinued.-you-can-see-the-replacement-product-by-clicking-on-the-button-below") %></p>
+
+					<aui:button cssClass="btn btn-primary btn-sm my-2" href="<%= cpContentHelper.getReplacementCommerceProductFriendlyURL(cpSku, themeDisplay) %>" value="replacement-product" />
+				</c:if>
+
+				<%
+					String hideCssClass = StringPool.BLANK;
+
+					if (hasReplacement) {
+						hideCssClass = "hide";
+					}
+				%>
+
+				<p class="my-2 <%= hideCssClass %>" data-text-cp-instance-sku>
+					<span class="font-weight-semi-bold">
+						<%= LanguageUtil.get(request, "sku") %>
+					</span>
+					<span>
+						<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getSku()) %>
+					</span>
+				</p>
 
 				<h2 class="product-header-title"><%= HtmlUtil.escape(cpCatalogEntry.getName()) %></h2>
 
-				<h4 class="product-header-subtitle" data-text-cp-instance-manufacturer-part-number>
-					<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getManufacturerPartNumber()) %>
-				</h4>
+				<p class="my-2 <%= hideCssClass %>" data-text-cp-instance-manufacturer-part-number>
+					<span class="font-weight-semi-bold">
+						<%= LanguageUtil.get(request, "mpn") %>
+					</span>
+					<span>
+						<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getManufacturerPartNumber()) %>
+					</span>
+				</p>
 
-				<h4 class="product-header-subtitle" data-text-cp-instance-gtin>
-					<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getGtin()) %>
-				</h4>
+				<p class="my-2 <%= hideCssClass %>" data-text-cp-instance-gtin>
+					<span class="font-weight-semi-bold">
+						<%= LanguageUtil.get(request, "gtin") %>
+					</span>
+					<span>
+						<%= (cpSku == null) ? StringPool.BLANK : HtmlUtil.escape(cpSku.getGtin()) %>
+					</span>
+				</p>
 			</header>
 
-			<p class="mt-3 procuct-description"><%= cpCatalogEntry.getDescription() %></p>
+			<p class="mt-3 product-description"><%= cpCatalogEntry.getDescription() %></p>
 
 			<h4 class="commerce-subscription-info mt-3 w-100">
 				<c:if test="<%= cpSku != null %>">
@@ -75,50 +125,70 @@
 			</h4>
 
 			<div class="product-detail-options">
-				<%@ include file="/render/form_handlers/aui.jspf" %>
+				<form data-senna-off="true" name="fm">
+					<%= cpContentHelper.renderOptions(renderRequest, renderResponse) %>
+				</form>
 
-				<%= cpContentHelper.renderOptions(renderRequest, renderResponse) %>
+				<liferay-portlet:actionURL name="/cp_content_web/check_cp_instance" portletName="com_liferay_commerce_product_content_web_internal_portlet_CPContentPortlet" var="checkCPInstanceURL">
+					<portlet:param name="cpDefinitionId" value="<%= String.valueOf(cpDefinitionId) %>" />
+				</liferay-portlet:actionURL>
 
-				<%@ include file="/render/form_handlers/metal_js.jspf" %>
+				<liferay-frontend:component
+						context='<%=
+						HashMapBuilder.<String, Object>put(
+							"actionURL", checkCPInstanceURL
+						).put(
+							"cpDefinitionId", cpDefinitionId
+						).put(
+							"namespace", liferayPortletResponse.getNamespace()
+						).build()
+					%>'
+						module="product_detail/render/js/ProductOptionsHandler"
+				/>
 			</div>
 
 			<c:choose>
 				<c:when test="<%= cpSku != null %>">
-					<div class="availability mt-1"><%= cpContentHelper.getAvailabilityLabel(request) %></div>
 					<div class="availability-estimate mt-1"><%= cpContentHelper.getAvailabilityEstimateLabel(request) %></div>
-					<div class="mt-1 stock-quantity"><%= cpContentHelper.getStockQuantityLabel(request) %></div>
 				</c:when>
 				<c:otherwise>
-					<div class="availability mt-1" data-text-cp-instance-availability></div>
 					<div class="availability-estimate mt-1" data-text-cp-instance-availability-estimate></div>
-					<div class="stock-quantity mt-1" data-text-cp-instance-stock-quantity></div>
 				</c:otherwise>
 			</c:choose>
 
 			<c:choose>
 				<c:when test="<%= themeDisplay.isSignedIn()%>">
-					<c:if test="<%= cpSku != null %>">
+					<div class="mt-3 price-container row">
+						<div class="col-lg-9 col-sm-12 col-xl-6">
+							<commerce-ui:price
+									CPCatalogEntry="<%= cpCatalogEntry %>"
+									namespace="<%= liferayPortletResponse.getNamespace() %>"
+							/>
+						</div>
+					</div>
 
-					<h2 class="commerce-price mt-3" data-text-cp-instance-price>
-						<commerce-ui:price
-							CPDefinitionId="<%= cpCatalogEntry.getCPDefinitionId() %>"
-							CPInstanceId="<%= (cpSku == null) ? 0 : cpSku.getCPInstanceId() %>"
-						/>
-					</h2>
+					<c:if test="<%= cpSku != null %>">
 						<liferay-commerce:tier-price
 								CPInstanceId="<%= cpSku.getCPInstanceId() %>"
-								taglibQuantityInputId='<%= renderResponse.getNamespace() + cpDefinitionId + "Quantity" %>'
+								taglibQuantityInputId='<%= liferayPortletResponse.getNamespace() + cpDefinitionId + "Quantity" %>'
 						/>
 					</c:if>
 
-					<div class="mt-3 product-detail-actions">
-						<div class="autofit-col">
-							<commerce-ui:add-to-cart
-								CPInstanceId="<%= (cpSku == null) ? 0 : cpSku.getCPInstanceId() %>"
-								id="<%= addToCartId %>"
-							/>
+					<div class="align-items-center d-flex mt-3 product-detail-actions">
+						<commerce-ui:add-to-cart
+								alignment="left"
+								CPCatalogEntry="<%= cpCatalogEntry %>"
+								inline="<%= true %>"
+								namespace="<%= liferayPortletResponse.getNamespace() %>"
+								options='<%= "[]" %>'
+								size="lg"
+						/>
+
+						<commerce-ui:add-to-wish-list
+								CPCatalogEntry="<%= cpCatalogEntry %>"
+								large="<%= true %>"
+						/>
 					</div>
-				</div>
 				</c:when>
 				<c:otherwise>
 					<div class="mt-3 product-detail-actions">
@@ -126,21 +196,26 @@
 					</div>
 				</c:otherwise>
 			</c:choose>
-
+			<div class="mt-3">
+				<commerce-ui:compare-checkbox
+						CPCatalogEntry="<%= cpCatalogEntry %>"
+						label='<%= LanguageUtil.get(resourceBundle, "compare") %>'
+				/>
+			</div>
 		</div>
 	</div>
 </div>
 
 <%
 	List<CPDefinitionSpecificationOptionValue> cpDefinitionSpecificationOptionValues = cpContentHelper.getCPDefinitionSpecificationOptionValues(cpDefinitionId);
+	List<CPMedia> cpMedias = cpContentHelper.getCPMedias(cpDefinitionId, themeDisplay);
 	List<CPOptionCategory> cpOptionCategories = cpContentHelper.getCPOptionCategories(company.getCompanyId());
-	List<CPMedia> cpAttachmentFileEntries = cpContentHelper.getCPAttachmentFileEntries(cpDefinitionId, themeDisplay);
 %>
 
 <c:if test="<%= cpContentHelper.hasCPDefinitionSpecificationOptionValues(cpDefinitionId) %>">
 	<commerce-ui:panel
-			elementClasses="mb-3"
-			title='Specification'
+			elementClasses="flex-column mb-3"
+			title='<%= LanguageUtil.get(resourceBundle, "specifications") %>'
 	>
 		<dl class="specification-list">
 
@@ -191,38 +266,41 @@
 	</commerce-ui:panel>
 </c:if>
 
-<c:if test="<%= !cpAttachmentFileEntries.isEmpty() %>">
+<c:if test="<%= !cpMedias.isEmpty() %>">
 	<commerce-ui:panel
 			elementClasses="mb-3"
-			title='Attachments'
+			title='<%= LanguageUtil.get(resourceBundle, "attachments") %>'
 	>
 		<dl class="specification-list">
 
 			<%
 				int attachmentsCount = 0;
 
-				for (CPMedia curCPAttachmentFileEntry : cpAttachmentFileEntries) {
+				for (CPMedia cpMedia : cpMedias) {
 			%>
 
 			<dt class="specification-term">
-				<%= HtmlUtil.escape(curCPAttachmentFileEntry.getTitle()) %>
+				<%= HtmlUtil.escape(cpMedia.getTitle()) %>
 			</dt>
 			<dd class="specification-desc">
-				<aui:icon cssClass="icon-monospaced" image="download" markupView="lexicon" target="_blank" url="<%= curCPAttachmentFileEntry.getDownloadUrl() %>" />
+				<aui:icon cssClass="icon-monospaced" image="download" markupView="lexicon" target="_blank" url="<%= cpMedia.getDownloadURL() %>" />
 			</dd>
 
 			<%
 				attachmentsCount = attachmentsCount + 1;
-
-				if (attachmentsCount >= 2) {
 			%>
 
-			<dt class="specification-empty specification-term"></dt>
-			<dd class="specification-desc specification-empty"></dd>
+			<c:if test="<%= attachmentsCount >= 2 %>">
+				<dt class="specification-empty specification-term"></dt>
+				<dd class="specification-desc specification-empty"></dd>
+
+				<%
+					attachmentsCount = 0;
+				%>
+
+			</c:if>
 
 			<%
-						attachmentsCount = 0;
-					}
 				}
 			%>
 
