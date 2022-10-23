@@ -41,6 +41,7 @@
 				long cpDefinitionId = cpCatalogEntry.getCPDefinitionId();
 				String productDefaultImageUrl = cpContentHelper.getDefaultImageFileURL(commerceAccoountId, cpDefinitionId);
 				String signInUrl = "/c/portal/login?redirect=" + productFriendlyUrl;
+				String productDetailURL = cpContentHelper.getFriendlyURL(cpCatalogEntry, themeDisplay);
 
 			%>
 
