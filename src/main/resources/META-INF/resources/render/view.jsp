@@ -180,7 +180,7 @@
 								CPCatalogEntry="<%= cpCatalogEntry %>"
 								inline="<%= true %>"
 								namespace="<%= liferayPortletResponse.getNamespace() %>"
-								options='<%= "[]" %>'
+								skuOptions='<%= "[]" %>'
 								size="lg"
 						/>
 
